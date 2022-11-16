@@ -125,6 +125,30 @@ private:
 };
 
 template<typename TClass>
+class ImplementModalTracking : public TClass {
+public:
+	template<typename ... arg_t> ImplementModalTracking(arg_t && ... arg) : TClass(std::forward<arg_t>(arg) ...) {}
+
+	BEGIN_MSG_MAP_EX(ImplementModalTracking)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		MSG_WM_DESTROY(OnDestroy)
+		CHAIN_MSG_MAP(TClass)
+	END_MSG_MAP()
+private:
+	void OnDestroy() {
+		m_modal.deinitialize();
+		SetMsgHandled(FALSE);
+	}
+	BOOL OnInitDialog(CWindow, LPARAM) {
+		m_modal.initialize(this->m_hWnd);
+		SetMsgHandled(FALSE);
+		return FALSE;
+	}
+	modal_dialog_scope m_modal;
+
+};
+
+template<typename TClass>
 class ImplementModelessTracking : public TClass {
 public:
 	template<typename ... arg_t> ImplementModelessTracking(arg_t && ... arg ) : TClass(std::forward<arg_t>(arg) ... ) {}

@@ -304,6 +304,7 @@
     <ClInclude Include="CSingleThreadWrapper.h" />
     <ClInclude Include="CTableEditHelper-Legacy.h" />
     <ClInclude Include="DarkMode.h" />
+    <ClInclude Include="dsp_dialog.h" />
     <ClInclude Include="duration_counter.h" />
     <ClInclude Include="fb2k_threads.h" />
     <ClInclude Include="fb2k_wfx.h" />

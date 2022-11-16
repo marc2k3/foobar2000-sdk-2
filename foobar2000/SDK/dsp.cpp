@@ -411,17 +411,46 @@ bool dsp_entry::g_show_config_popup(dsp_preset & p_preset,fb2k::hwnd_t p_parent)
 	return entry->show_config_popup(p_preset,p_parent);
 }
 
-void dsp_entry::show_config_popup_v2_(const dsp_preset& p_preset, fb2k::hwnd_t p_parent, dsp_preset_edit_callback& p_callback) {
+bool dsp_entry::show_config_popup_v2_(const dsp_preset& p_preset, fb2k::hwnd_t p_parent, dsp_preset_edit_callback& p_callback) {
 	PFC_ASSERT(p_preset.get_owner() == this->get_guid());
-	service_ptr_t<dsp_entry_v2> entry_v2;
-	if (entry_v2 &= this) {
-		entry_v2->show_config_popup_v2(p_preset, p_parent, p_callback);
-	} else {
-		dsp_preset_impl temp(p_preset);
-		if (this->show_config_popup(temp, p_parent)) p_callback.on_preset_changed(temp);
-	}
-}
+	try {
+		service_ptr_t<dsp_entry_v2> entry_v2;
+		if (entry_v2 &= this) {
+			entry_v2->show_config_popup_v2(p_preset, p_parent, p_callback);
+			return true;
+		}
+	} catch (pfc::exception_not_implemented const&) {}
 
+	dsp_preset_impl temp(p_preset);
+	bool rv = this->show_config_popup(temp, p_parent);
+	if (rv) p_callback.on_preset_changed(temp);
+	return rv;
+}
+namespace {
+	class dsp_preset_edit_callback_callV2 : public dsp_preset_edit_callback {
+	public:
+		dsp_preset_edit_callback_v2::ptr chain;
+		void on_preset_changed(const dsp_preset& arg) override { chain->set_preset(arg); }
+	};
+}
+service_ptr dsp_entry::show_config_popup_v3_(fb2k::hwnd_t parent, dsp_preset_edit_callback_v2::ptr callback) {
+	dsp_entry_v3::ptr v3;
+	if (v3 &= this) {
+		try {
+			return v3->show_config_popup_v3(parent, callback);
+		} catch (pfc::exception_not_implemented) {
+		}
+	}
+
+	dsp_preset_edit_callback_callV2 cb;
+	cb.chain = callback;
+
+	dsp_preset_impl initPreset; callback->get_preset(initPreset);
+	bool status = this->show_config_popup_v2_(initPreset, parent, cb);
+	callback->dsp_dialog_done(status);
+	return nullptr;
+
+}
 void dsp_entry::g_show_config_popup_v2(const dsp_preset & p_preset,fb2k::hwnd_t p_parent,dsp_preset_edit_callback & p_callback) {
 	auto api = g_get_interface(p_preset.get_owner());
 	if (api.is_valid()) api->show_config_popup_v2_(p_preset, p_parent, p_callback);
